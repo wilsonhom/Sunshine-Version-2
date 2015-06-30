@@ -111,8 +111,51 @@ public class TestDb extends AndroidTestCase {
         where you can uncomment out the "createNorthPoleLocationValues" function.  You can
         also make use of the ValidateCurrentRecord function from within TestUtilities.
     */
+
     public void testLocationTable() {
-        insertLocation();
+        //long locationRowId = insertLocation();
+
+        // Make sure we have a valid row ID.
+        //assertFalse("Error: Location Not Inserted Correctly", locationRowId == -1L);
+
+        // First step: Get reference to writable database
+        // If there's an error in those massive SQL table creation Strings,
+        // errors will be thrown here when you try to get a writable database.
+        WeatherDbHelper dbHelper = new WeatherDbHelper(mContext);
+        SQLiteDatabase db = dbHelper.getWritableDatabase();
+
+        // Second Step (Location): Create weather values
+        ContentValues locationValues = TestUtilities.createNorthPoleLocationValues();
+
+        // Third Step (Weather): Insert ContentValues into database and get a row ID back
+        long locationRowId = db.insert(WeatherContract.LocationEntry.TABLE_NAME, null, locationValues);
+        assertTrue(locationRowId != -1);
+
+        // Fourth Step: Query the database and receive a Cursor back
+        // A cursor is your primary interface to the query results.
+        Cursor locationCursor = db.query(
+                WeatherContract.LocationEntry.TABLE_NAME,  // Table to Query
+                null, // leaving "columns" null just returns all the columns.
+                null, // cols for "where" clause
+                null, // values for "where" clause
+                null, // columns to group by
+                null, // columns to filter by row groups
+                null  // sort order
+        );
+
+        assertTrue( "Error: No Records returned from location query", locationCursor.moveToFirst() );
+
+        // Fifth Step: Validate the location Query
+        TestUtilities.validateCurrentRecord("testInsertReadDb weatherEntry failed to validate",
+                locationCursor, locationValues);
+
+        // Move the cursor to demonstrate that there is only one record in the database
+        assertFalse( "Error: More than one record returned from weather query",
+                locationCursor.moveToNext() );
+
+        // Sixth Step: Close cursor and database
+        locationCursor.close();
+        dbHelper.close();
     }
 
     /*
